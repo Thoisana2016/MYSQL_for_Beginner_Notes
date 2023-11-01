@@ -1,0 +1,675 @@
+
+// MySQL installation steps 
+
+1. update repository 
+	sudo apt update 
+2. upgrade repository 
+	sudo apt upgrade 
+3. install mysql 
+	sudo apt install mysql-server
+	check version 
+	mysql --version 
+
+	//for security or setting password 
+	sudo mysql_secure_installation 
+
+
+4. sudo mysql -u root
+
+
+
+//Some common sql commands 
+
+TO CREATE DATABASE : create database database_name;
+TO USE SPECIFIC DATABASE : use database_name;
+TO SHOW DATABASE : show databases;
+TO CREATE TABLE : create table table_name(column_name <data_type(size_value) attributes(Auto_increment, primary key, etc> , ));
+TO SHOW TABLE : show tables;
+TO DROP/DELETE TABLE OR DATABASE : drop table table_name; or drop database database_name; (	BE CAREFUL USING DROP COMMAND)
+TO ALTER TABLE(add new column after a specific column) : ALTER TABLE Table_name ADD COLUMN column_name data_type(size) NOT NULL AFTER column_name;
+
+
+//to import employee_smaple-database from git 
+steps : 
+
+// 1 = install git 
+sudo apt install git   
+
+// 2 = copy the link (code/https link)
+// https://github.com/bytebase/employee-sample-database
+//https://github.com/bytebase/employee-sample-database.git
+	paste the link to terminal and enter 
+	git clone https://github.com/bytebase/employee-sample-database.git
+
+
+//3 = then import after successfully clone go to /employee-sample-database/mysql/dataset_full$
+	sudo mysql < employee.sql
+
+
+//4 = testing everything imported successfully or not 
+	sudo mysql -t < test_employee_md5.sql 
+
+//5 =  get out of the directory 
+	cd 
+
+//6 = now login to mysql-server 
+	sudo mysql -u root -p
+
+
+
+
+=============================
+MANAGING MYSQL USER ACCOUNT 
+=============================
+	HOW TO CREATE A USER? :  create user 'dbuser'@'localhost' identified by 'Password123'; // user create using server name 
+							 create user 'dbuser1'@'%' identified by 'Password123'; // user create using wild card
+	CHANGE PASSWORD : alter user 'dbuser'@'localhost' identified by 'Password123';
+
+	List out all users : select user, host from mysql.user;
+
+	Delete a user : drop user 'dbuser'@'localhost';
+
+	this user : dbuser@localhost has not permition so no database will be there 
+
+	How give permission? : exit and login as root user 
+						  grant all privileges on employee.* to 'dbuser2'@'%'; 
+						  // grant all privilage of employee database   grant all privileges on database_name.table_name to 'username'@'hostname'; (note*.* for all db and tables) 
+						  grant select, insert, delete  on employee.* to 'dbuser2'@'%'; // granting specific feature 
+
+	How to revoke permission ? 
+	 : revoke all privileges on *.* from 'dbuser2'@'%'
+
+	HOW TO CHECK THE GRANT/PERMISION TO USER : show grants for 'dbuser2'@'%';
+
+
+
+==============================
+SELECT 
+==============================
+
+select *  from employee;
+
+select *  from employee limit 20;
+
+select emp_no , first_name , last_name  from employee limit 10;  //LIMIT
+
+select * from employee where last_name = "Bamford"; // WHERE CLAUSE 
+
+select * from employee where last_name = "Bamford" and gender='F';
+
+select last_name, first_name, gender, emp_no from employee where last_name = 'Bamford' and gender = 'M';
+
+select * from employee  order by hire_date limit 10; // order by column_name default ASC order 
+
+select * from employee  order by birth_date limit 10;
+
+select * from employee  order by hire_date limit 10;
+
+select * from employee where birth_date like '%1952%' limit 10;
+
+==============================
+INSERT 
+==============================
+
+insert into department (dept_no, dept_name) values ('d010', 'Technology');
+
+==============================
+UPDATE 
+==============================
+
+update department set dept_name = 'Help Desk' where dept_no = 'd010';
+
+==============================
+DELETE
+==============================
+
+DELETE FROM department WHERE dept_no ='d010';
+
+
+==============================
+PRIMARY KEY & FOREIGN KEY
+==============================
+
+Unique key to identify and organized the data,  it makes sure each row in a table is different from other. makes it more esaier to find and manage information within a database.
+
+//describe table_name; // this command gives all the information about the table 
+describe employee;
+
+//A FOREIGN KEY : a foreign key is like a bridge between two tables, it helps one table understabd information from another table 
+alter command to to modify the table and add foreign key 
+
+added column to table : alter table  employee  add column dept_no char(4);
+added foreign key	  :	alter table employee  add constraint fk_dept_no foreign key (dept_no) references department (dept_no); // 
+
+
++------------+---------------+------+-----+---------+-------+
+| Field      | Type          | Null | Key | Default | Extra |
++------------+---------------+------+-----+---------+-------+
+| emp_no     | int           | NO   | PRI | NULL    |       |
+| birth_date | date          | NO   |     | NULL    |       |
+| first_name | varchar(14)   | NO   |     | NULL    |       |
+| last_name  | varchar(16)   | NO   |     | NULL    |       |
+| gender     | enum('M','F') | NO   |     | NULL    |       |
+| hire_date  | date          | NO   |     | NULL    |       |
+| dept_no    | char(4)       | YES  | MUL | NULL    |       |
++------------+---------------+------+-----+---------+-------+
+
+MUL = means multiple and this is our foreign key 
+
+
+// grabing random department id and drop it into employee table under that new depart number column 
+update employee set dept_no = (
+select dept_no from department order by rand() limit 1);
+
+
+===============================
+JOINS 
+===============================
+
+#Inner Join
+//innner join brings only row that are 100% match  
+select * from employee inner join department on employee.dept_no = department.dept_no;
+select emp_no, first_name , last_name , dept_name  from employee inner join department on employee.dept_no = department.dept_no;
+
+#left join
+// left join shows all the from the left table (which is employee my case) and only matching data from the right
+//brings releted from the other table instead of excluding all the nulls or the exact match
+
+select emp_no, first_name , last_name , dept_name  from employee left join department on employee.dept_no = department.dept_no;
+
+#right join
+// it is the exact opposite of left join 
+it will basically display all the data from the right table and the matching data from the left table and this will give department and employee list (my case) 
+
+mysql> select department.dept_no, department.dept_name, count(employee.emp_no) as num_employees from department  left join employee on  department.dept_no = employee.dept_no group by department.dept_no,
+department.dept_name;
++---------+--------------------+---------------+
+| dept_no | dept_name          | num_employees |
++---------+--------------------+---------------+
+| d001    | Marketing          |         33309 |
+| d002    | Finance            |         33805 |
+| d003    | Human Resources    |         33190 |
+| d004    | Production         |         33365 |
+| d005    | Development        |         33225 |
+| d006    | Quality Management |         33319 |
+| d007    | Sales              |         33188 |
+| d008    | Research           |         33087 |
+| d009    | Customer Service   |         33536 |
++---------+--------------------+---------------+
+9 rows in set (0.32 sec)
+
+
+
+=================================
+VIEWS 
+================================= 
+
+create view employee_gender as Select first_name, last_name , gender from employee;
+select * from employee_gender;
+
+//when the original tables got updated, the view table also got update automatically.
+
+//how to delete a view
+drop view view_name;
+drop view employee_gender;
+
+mysql> show tables;
++----------------------+
+| Tables_in_employee   |
++----------------------+
+| current_dept_emp     |
+| department           |
+| dept_emp             |
+| dept_emp_latest_date |
+| dept_manager         |
+| employee             |
+| employee_gender      |
+| salary               |
+| title                |
++----------------------+
+9 rows in set (0.00 sec)
+
+mysql> select * from department;
++---------+--------------------+
+| dept_no | dept_name          |
++---------+--------------------+
+| d009    | Customer Service   |
+| d005    | Development        |
+| d002    | Finance            |
+| d003    | Human Resources    |
+| d001    | Marketing          |
+| d004    | Production         |
+| d006    | Quality Management |
+| d008    | Research           |
+| d007    | Sales              |
++---------+--------------------+
+9 rows in set (0.00 sec)
+
+mysql> alter table department
+    -> add column email varchar(50);
+Query OK, 0 rows affected (0.04 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+
+mysql> select * from department;
++---------+--------------------+
+| dept_no | dept_name          |
++---------+--------------------+
+| d009    | Customer Service   |
+| d005    | Development        |
+| d002    | Finance            |
+| d003    | Human Resources    |
+| d001    | Marketing          |
+| d004    | Production         |
+| d006    | Quality Management |
+| d008    | Research           |
+| d007    | Sales              |
++---------+--------------------+
+9 rows in set (0.00 sec)
+
+mysql> alter table department
+    -> add column email varchar(50);
+Query OK, 0 rows affected (0.04 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> 
+mysql> select * from department;
++---------+--------------------+-------+
+| dept_no | dept_name          | email |
++---------+--------------------+-------+
+| d001    | Marketing          | NULL  |
+| d002    | Finance            | NULL  |
+| d003    | Human Resources    | NULL  |
+| d004    | Production         | NULL  |
+| d005    | Development        | NULL  |
+| d006    | Quality Management | NULL  |
+| d007    | Sales              | NULL  |
+| d008    | Research           | NULL  |
+| d009    | Customer Service   | NULL  |
++---------+--------------------+-------+
+9 rows in set (0.00 sec)
+
+mysql> update department
+    -> set email = 'marketing@abc.com'
+    -> where dept_no = 'd001';
+Query OK, 1 row affected (0.01 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select * from department;
++---------+--------------------+-------------------+
+| dept_no | dept_name          | email             |
++---------+--------------------+-------------------+
+| d001    | Marketing          | marketing@abc.com |
+| d002    | Finance            | NULL              |
+| d003    | Human Resources    | NULL              |
+| d004    | Production         | NULL              |
+| d005    | Development        | NULL              |
+| d006    | Quality Management | NULL              |
+| d007    | Sales              | NULL              |
+| d008    | Research           | NULL              |
+| d009    | Customer Service   | NULL              |
++---------+--------------------+-------------------+
+9 rows in set (0.00 sec)
+
+
+mysql> update department set email = 'cust@abc.com' where dept_no = 'd009';
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select * from department;
++---------+--------------------+-------------------+
+| dept_no | dept_name          | email             |
++---------+--------------------+-------------------+
+| d001    | Marketing          | marketing@abc.com |
+| d002    | Finance            | fin@abc.com       |
+| d003    | Human Resources    | hr@abc.com        |
+| d004    | Production         | prod@abc.com      |
+| d005    | Development        | dev@abc.com       |
+| d006    | Quality Management | qual@abc.com      |
+| d007    | Sales              | sales@abc.com     |
+| d008    | Research           | research@abc.com  |
+| d009    | Customer Service   | cust@abc.com      |
++---------+--------------------+-------------------+
+9 rows in set (0.00 sec)
+
+
+mysql> create view dept_email as 
+    -> select dept_no, email
+    -> from department;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> select * from dep_email;
+ERROR 1146 (42S02): Table 'employee.dep_email' doesn't exist
+mysql> select * from dept_email;
++---------+-------------------+
+| dept_no | email             |
++---------+-------------------+
+| d001    | marketing@abc.com |
+| d002    | fin@abc.com       |
+| d003    | hr@abc.com        |
+| d004    | prod@abc.com      |
+| d005    | dev@abc.com       |
+| d006    | qual@abc.com      |
+| d007    | sales@abc.com     |
+| d008    | research@abc.com  |
+| d009    | cust@abc.com      |
++---------+-------------------+
+9 rows in set (0.00 sec)
+
+
+//show in after creating view no need to update the view because it will automatically update the view table also//
+
+mysql> insert into department (dept_no, dept_name, email) values 
+    -> ('d010', 'Helpdesk','help@abc.com');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from department;
++---------+--------------------+-------------------+
+| dept_no | dept_name          | email             |
++---------+--------------------+-------------------+
+| d001    | Marketing          | marketing@abc.com |
+| d002    | Finance            | fin@abc.com       |
+| d003    | Human Resources    | hr@abc.com        |
+| d004    | Production         | prod@abc.com      |
+| d005    | Development        | dev@abc.com       |
+| d006    | Quality Management | qual@abc.com      |
+| d007    | Sales              | sales@abc.com     |
+| d008    | Research           | research@abc.com  |
+| d009    | Customer Service   | cust@abc.com      |
+| d010    | Helpdesk           | help@abc.com      |
++---------+--------------------+-------------------+
+10 rows in set (0.00 sec)
+
+mysql> select * from dept_email;
++---------+-------------------+
+| dept_no | email             |
++---------+-------------------+
+| d001    | marketing@abc.com |
+| d002    | fin@abc.com       |
+| d003    | hr@abc.com        |
+| d004    | prod@abc.com      |
+| d005    | dev@abc.com       |
+| d006    | qual@abc.com      |
+| d007    | sales@abc.com     |
+| d008    | research@abc.com  |
+| d009    | cust@abc.com      |
+| d010    | help@abc.com      |
++---------+-------------------+
+10 rows in set (0.00 sec)
+
+
+
+==============================
+INDEX 
+==============================
+
+Index is basically a quick reference for our database and it helps us speed up data retrival. 
+it is a structurally organised data in a way that makes searching for specific information much faster. 
+it is like a index of a book that tell us where to find a particullar topic without reading the whole book/chapter.
+
+//how to see the index of a particular table 
+
+mysql> show indexes from employee;
++----------+------------+------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table    | Non_unique | Key_name   | Seq_in_index | Column_name | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++----------+------------+------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| employee |          0 | PRIMARY    |            1 | emp_no      | A         
+|      298559 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| employee |          1 | fk_dept_no |            1 | dept_no     | A         |           8 |     NULL |   NULL | YES  | BTREE      |         |               | YES     | NULL       |
++----------+------------+------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+2 rows in set (0.01 sec)
+
+
+//how to create indexes?
+
+
+mysql> create index idx_lastname
+    -> on employee(last_name);
+Query OK, 0 rows affected (1.82 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> show indexes from employee;
++----------+------------+--------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table    | Non_unique | Key_name     | Seq_in_index | Column_name | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++----------+------------+--------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| employee |          0 | PRIMARY      |            1 | emp_no      | A         |      298559 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| employee |          1 | fk_dept_no   |            1 | dept_no     | A         |           8 |     NULL |   NULL | YES  | BTREE      |         |               | YES     | NULL       |
+| employee |          1 | idx_lastname |            1 | last_name   | A         |        1667 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++----------+------------+--------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+3 rows in set (0.00 sec)
+
+
+select * from employee where last_name = 'Baaz';
+
+//how to drop index 
+
+mysql> alter table employee
+    -> drop index idx_lastname;
+Query OK, 0 rows affected (0.05 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+ //speed for fetching data is ovserved, with index it is fast
+
+
+
+=============================
+ SUB-QUERY
+=============================
+
+Sub-query is a query within a query 
+
+select * from employee  where dept_no = (select dept_no from department where dept_name = 'Sales');
+
+
+=============================
+STORE PROCEDURE 
+=============================
+How store procedure is created?
+
+
+mysql> delimiter //
+mysql> create procedure employee_count_dept()
+    -> begin
+    -> select department.dept_no, department.dept_name, count(employee.emp_no) as num_employees from
+    -> department
+    -> left join employee
+    -> on department.dept_no = employee.dept_no
+    -> group by department.dept_no, department.dept_name;
+    -> end //
+Query OK, 0 rows affected (0.01 sec)
+
+
+mysql> delimiter ;
+mysql> call employee_count_dept();
++---------+--------------------+---------------+
+| dept_no | dept_name          | num_employees |
++---------+--------------------+---------------+
+| d001    | Marketing          |         33309 |
+| d002    | Finance            |         33805 |
+| d003    | Human Resources    |         33190 |
+| d004    | Production         |         33365 |
+| d005    | Development        |         33225 |
+| d006    | Quality Management |         33319 |
+| d007    | Sales              |         33188 |
+| d008    | Research           |         33087 |
+| d009    | Customer Service   |         33536 |
+| d010    | Helpdesk           |             0 |
++---------+--------------------+---------------+
+10 rows in set (0.55 sec)
+
+Query OK, 0 rows affected (0.55 sec)
+
+mysql> drop procedure employee_count_dept;
+Query OK, 0 rows affected (0.01 sec)
+
+
+
+
+=============================
+TRIGGER
+=============================
+//insert delete update 
+
+create table employee_audit ( audit_id int auto_increment primary key, dept_no int, action varchar(50), action_date TIMESTAMP);
+Query OK, 0 rows affected (0.04 sec)
+
+
+mysql> delimiter //
+mysql> create trigger employee_audit_trigger
+    -> after update on employee
+    -> for each
+    -> begin
+    -> insert into employee_audit (dept_no, action, action_date)
+    -> values (new.dept_no, 'UPDATE', NOW());
+    -> end //
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'begin
+insert into employee_audit (dept_no, action, action_date)
+values (new.dept' at line 4
+mysql> create trigger employee_audit_trigger after update on employee for each row begin insert into employee_audit (dept_no, action, action_date) value
+s (new.dept_no, 'UPDATE', NOW()); end//
+
+
+
+mysql> delimiter ;
+mysql> show triggers;
++------------------------+--------+----------+------------------------------------------------------------------------------------------------------------+--------+------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------+----------------------+----------------------+--------------------+
+| Trigger                | Event  | Table    | Statement                                                                                                  | Timing | Created                | sql_mode                                                                                                              | Definer        | character_set_client | collation_connection | Database Collation |
++------------------------+--------+----------+------------------------------------------------------------------------------------------------------------+--------+------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------+----------------------+----------------------+--------------------+
+| employee_audit_trigger | UPDATE | employee | begin insert into employee_audit (dept_no, action, action_date) values (new.dept_no, 'UPDATE', NOW()); end | AFTER  | 2023-11-01 14:57:17.18 | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION | root@localhost | utf8mb4              | utf8mb4_0900_ai_ci   | utf8mb4_0900_ai_ci |
++------------------------+--------+----------+------------------------------------------------------------------------------------------------------------+--------+------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------+----------------------+----------------------+--------------------+
+1 row in set (0.01 sec)
+
+
+
+
+ysql> select * from employee limit 10;
++--------+------------+------------+-----------+--------+------------+---------+
+| emp_no | birth_date | first_name | last_name | gender | hire_date  | dept_no |
++--------+------------+------------+-----------+--------+------------+---------+
+|  10001 | 1953-09-02 | Georgi     | Facello   | M      | 1986-06-26 | d001    |
+|  10002 | 1964-06-02 | Bezalel    | Simmel    | F      | 1985-11-21 | d002    |
+|  10003 | 1959-12-03 | Parto      | Bamford   | M      | 1986-08-28 | d006    |
+|  10004 | 1954-05-01 | Chirstian  | Koblick   | M      | 1986-12-01 | d001    |
+|  10005 | 1955-01-21 | Kyoichi    | Maliniak  | M      | 1989-09-12 | d003    |
+|  10006 | 1953-04-20 | Anneke     | Preusig   | F      | 1989-06-02 | d001    |
+|  10007 | 1957-05-23 | Tzvetan    | Zielinski | F      | 1989-02-10 | d005    |
+|  10008 | 1958-02-19 | Saniya     | Kalloufi  | M      | 1994-09-15 | d009    |
+|  10009 | 1952-04-19 | Sumant     | Peac      | F      | 1985-02-18 | d008    |
+|  10010 | 1963-06-01 | Duangkaew  | Piveteau  | F      | 1989-08-24 | d006    |
++--------+------------+------------+-----------+--------+------------+---------+
+10 rows in set (0.01 sec)
+
+mysql> 
+mysql> update employee
+    -> set dept_no = 'd010'
+    -> where emp_no = 10001;
+ERROR 1366 (HY000): Incorrect integer value: 'd010' for column 'dept_no' at row 1
+mysql> describe employee;
++------------+---------------+------+-----+---------+-------+
+| Field      | Type          | Null | Key | Default | Extra |
++------------+---------------+------+-----+---------+-------+
+| emp_no     | int           | NO   | PRI | NULL    |       |
+| birth_date | date          | NO   |     | NULL    |       |
+| first_name | varchar(14)   | NO   |     | NULL    |       |
+| last_name  | varchar(16)   | NO   |     | NULL    |       |
+| gender     | enum('M','F') | NO   |     | NULL    |       |
+| hire_date  | date          | NO   |     | NULL    |       |
+| dept_no    | char(4)       | YES  | MUL | NULL    |       |
++------------+---------------+------+-----+---------+-------+
+7 rows in set (0.01 sec)
+
+mysql> describe employee_audit;
++-------------+-------------+------+-----+---------+----------------+
+| Field       | Type        | Null | Key | Default | Extra          |
++-------------+-------------+------+-----+---------+----------------+
+| audit_id    | int         | NO   | PRI | NULL    | auto_increment |
+| dept_no     | int         | YES  |     | NULL    |                |
+| action      | varchar(50) | YES  |     | NULL    |                |
+| action_date | timestamp   | YES  |     | NULL    |                |
++-------------+-------------+------+-----+---------+----------------+
+4 rows in set (0.00 sec)
+
+mysql> alter table employee_audit
+    -> modify column dept_no char(4);
+Query OK, 0 rows affected (0.07 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> describe employee_audit;
++-------------+-------------+------+-----+---------+----------------+
+| Field       | Type        | Null | Key | Default | Extra          |
++-------------+-------------+------+-----+---------+----------------+
+| audit_id    | int         | NO   | PRI | NULL    | auto_increment |
+| dept_no     | char(4)     | YES  |     | NULL    |                |
+| action      | varchar(50) | YES  |     | NULL    |                |
+| action_date | timestamp   | YES  |     | NULL    |                |
++-------------+-------------+------+-----+---------+----------------+
+4 rows in set (0.01 sec)
+
+mysql> update employee set dept_no = 'd010' where emp_no = 10001;
+Query OK, 1 row affected (0.01 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select * from emp
+emp_no                      employee.hire_date         
+employee                    employee.last_name         
+employee.birth_date         employee_gender            
+employee.dept_no            employee_gender.first_name 
+employee.emp_no             employee_gender.gender     
+employee.first_name         employee_gender.last_name  
+employee.gender            
+mysql> select * from employee_audit;
++----------+---------+--------+---------------------+
+| audit_id | dept_no | action | action_date         |
++----------+---------+--------+---------------------+
+|        1 | d010    | UPDATE | 2023-11-01 15:02:12 |
++----------+---------+--------+---------------------+
+1 row in set (0.00 sec)
+
+
+mysql> update employee
+    -> set dept_no = (
+    -> select dept_no 
+    -> from department
+    -> order by RAND()
+    -> limit 1
+    -> );
+Query OK, 270252 rows affected (13.09 sec)
+Rows matched: 300024  Changed: 270252  Warnings: 0
+
+
+
+=============================
+PROCESSLIST
+=============================
+
+mysql> show processlist;
++----+-----------------+-----------+----------+---------+--------+------------------------+------------------+
+| Id | User            | Host      | db       | Command | Time   | State                  | Info             |
++----+-----------------+-----------+----------+---------+--------+------------------------+------------------+
+|  5 | event_scheduler | localhost | NULL     | Daemon  | 181925 | Waiting on empty queue | NULL             |
+| 23 | root            | localhost | employee | Sleep   |   3113 |                        | NULL             |
+| 24 | root            | localhost | sakila   | Sleep   |  10777 |                        | NULL             |
+| 25 | root            | localhost | employee | Query   |      0 | init                   | show processlist |
++----+-----------------+-----------+----------+---------+--------+------------------------+------------------+
+4 rows in set (0.00 sec)
+
+
+=============================
+BACKUP DATABASE 
+=============================
+
+//mysql dump 
+ 
+
+
+=============================
+RESTORE DATABASE =
+=============================
+
+
+
+
+=============================
+OUTRO
+=============================
+
